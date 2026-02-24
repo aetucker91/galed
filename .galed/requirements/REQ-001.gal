@@ -1,0 +1,47 @@
+id: REQ-001
+version: 1.0.0
+type: deterministic
+domain: clinical
+status: active
+
+principal:
+  authored_by: avery.tucker
+  authored_by_role: HUMAN_AUTHOR
+
+rationale: >
+  Carrier variant ingestion must reject malformed records at the boundary
+  to prevent silent data loss propagating into downstream curation.
+  The carrier-var incident (2025-Q4) demonstrated that embedded newlines
+  in genetic notation fields caused months of silent failures.
+
+description: >
+  The ingestion service must validate all incoming carrier variant records
+  against the canonical schema before accepting them into the processing queue.
+  Any record failing validation must be rejected with a structured error
+  containing the field name, violation type, and raw value.
+
+ac:
+  input: "carrier variant record with embedded newline in ALT field"
+  expected_output: "HTTP 422 with body: {field: 'ALT', violation: 'embedded_newline', raw_value: <value>}"
+  tolerance: "exact match on status code; body fields present and non-null"
+  wording: >
+    WHEN a carrier variant record is submitted to the ingestion endpoint,
+    IF the record contains an embedded newline in any genetic notation field,
+    THEN the system SHALL reject the record with HTTP 422 and a structured
+    error body identifying the offending field.
+
+graph:
+  component: COMP-ingestion
+  edges:
+    - type: DEPENDS_ON
+      target: REQ-002
+      provenance: declared
+      confidence: 1.0
+
+change_log:
+  - version: 1.0.0
+    changed_at: "2026-02-24T00:00:00Z"
+    changed_by: avery.tucker
+    changed_by_role: HUMAN_AUTHOR
+    change_class: scope_change
+    content_hash: "placeholder-hash-replace-with-sha256-on-first-validate"

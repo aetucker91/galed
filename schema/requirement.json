@@ -1,0 +1,185 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/aetucker91/galed/schema/requirement.json",
+  "title": "Galed Requirement",
+  "description": "A single requirement in the Galed requirements definition language",
+  "type": "object",
+  "required": ["id", "version", "type", "domain", "status", "principal", "rationale", "description", "ac"],
+  "additionalProperties": false,
+  "properties": {
+
+    "id": {
+      "type": "string",
+      "pattern": "^REQ-[0-9]{3,}$",
+      "description": "Unique requirement identifier",
+      "lock": "locked"
+    },
+
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "Semantic version of this requirement"
+    },
+
+    "type": {
+      "type": "string",
+      "enum": ["deterministic", "probabilistic", "temporal", "adversarial"],
+      "lock": "locked"
+    },
+
+    "domain": {
+      "type": "string",
+      "enum": ["clinical", "aerospace", "research", "general"],
+      "lock": "locked"
+    },
+
+    "status": {
+      "type": "string",
+      "enum": ["active", "incomplete", "deprecated", "superseded"],
+      "default": "active"
+    },
+
+    "principal": {
+      "type": "object",
+      "required": ["authored_by", "authored_by_role"],
+      "properties": {
+        "authored_by": { "type": "string" },
+        "authored_by_role": {
+          "type": "string",
+          "enum": ["HUMAN_AUTHOR", "HUMAN_REVIEWER", "CLINICAL_LEAD", "AI_ASSISTED", "AI_AUTONOMOUS", "CI_GATE"]
+        }
+      }
+    },
+
+    "rationale": {
+      "type": "string",
+      "minLength": 10,
+      "description": "Why this requirement exists. Must remain human-authored.",
+      "lock": "locked"
+    },
+
+    "description": {
+      "type": "string",
+      "minLength": 10,
+      "lock": "human_approved"
+    },
+
+    "ac": {
+      "type": "object",
+      "description": "Acceptance criteria — required fields vary by requirement type",
+      "properties": {
+        "input":              { "type": "string" },
+        "expected_output":    { "type": "string" },
+        "tolerance":          { "type": "string" },
+        "metric":             { "type": "string", "lock": "locked" },
+        "threshold":          { "type": "number", "lock": "human_approved" },
+        "comparison":         { "type": "string", "enum": [">=", "<=", "==", ">", "<"] },
+        "cohort":             { "type": "string", "lock": "locked" },
+        "n_samples":          { "type": "integer", "minimum": 1 },
+        "confidence_interval":{ "type": "number", "minimum": 0, "maximum": 1 },
+        "drift_trigger":      { "type": "string", "lock": "human_approved" },
+        "deadline":           { "type": "number", "minimum": 0 },
+        "deadline_unit":      { "type": "string", "enum": ["ms", "s", "min", "hr", "day"] },
+        "trigger_event":      { "type": "string" },
+        "failure_behavior":   { "type": "string" },
+        "attack_type":        { "type": "string", "enum": ["ood", "label_flip", "input_perturbation", "prompt_injection", "data_poisoning"] },
+        "perturbation_budget":{ "type": "number", "minimum": 0 },
+        "robustness_metric":  { "type": "string" },
+        "wording":            { "type": "string", "lock": "ai_autonomous" }
+      }
+    },
+
+    "change_log": {
+      "type": "array",
+      "description": "Immutable version history. Computed field — do not edit manually.",
+      "lock": "computed",
+      "items": {
+        "type": "object",
+        "required": ["version", "changed_at", "changed_by", "changed_by_role", "change_class", "content_hash"],
+        "properties": {
+          "version":        { "type": "string" },
+          "changed_at":     { "type": "string", "format": "date-time" },
+          "changed_by":     { "type": "string" },
+          "changed_by_role":{ "type": "string" },
+          "change_class":   {
+            "type": "string",
+            "enum": ["scope_change", "ac_refinement", "ac_relaxation", "wording_only", "test_link_update", "code_link_update"]
+          },
+          "content_hash":   { "type": "string", "description": "SHA256 of canonical serialized fields" },
+          "proposal_id":    { "type": "string", "pattern": "^PROP-[0-9]+$" }
+        }
+      }
+    },
+
+    "linked_tests": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Test IDs linked to this requirement. Computed by CI.",
+      "lock": "computed"
+    },
+
+    "linked_code": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Code references linked to this requirement. Computed by CI.",
+      "lock": "computed"
+    },
+
+    "graph": {
+      "type": "object",
+      "description": "Graph edges involving this requirement",
+      "properties": {
+        "component": { "type": "string", "description": "Parent component ID" },
+        "edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["type", "target", "provenance"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["DEPENDS_ON", "CONSTRAINS", "IMPLEMENTS", "CONFLICTS_WITH", "SUPERSEDES"]
+              },
+              "target":     { "type": "string" },
+              "provenance": { "type": "string", "enum": ["declared", "inferred"] },
+              "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+            }
+          }
+        }
+      }
+    },
+
+    "deprecated_at":      { "type": "string", "format": "date-time" },
+    "deprecated_by":      { "type": "string" },
+    "deprecation_reason": { "type": "string" },
+    "superseded_by":      { "type": "string", "pattern": "^REQ-[0-9]{3,}$" },
+    "archived":           { "type": "boolean" }
+  },
+
+  "allOf": [
+    {
+      "if": { "properties": { "type": { "const": "deterministic" } } },
+      "then": {
+        "properties": { "ac": { "required": ["input", "expected_output", "tolerance"] } }
+      }
+    },
+    {
+      "if": { "properties": { "type": { "const": "probabilistic" } } },
+      "then": {
+        "properties": { "ac": { "required": ["metric", "threshold", "comparison", "cohort", "n_samples", "confidence_interval", "drift_trigger"] } }
+      }
+    },
+    {
+      "if": { "properties": { "type": { "const": "temporal" } } },
+      "then": {
+        "properties": { "ac": { "required": ["deadline", "deadline_unit", "trigger_event", "failure_behavior"] } }
+      }
+    },
+    {
+      "if": { "properties": { "type": { "const": "adversarial" } } },
+      "then": {
+        "properties": { "ac": { "required": ["attack_type", "perturbation_budget", "robustness_metric", "threshold", "cohort"] } }
+      }
+    }
+  ]
+}
