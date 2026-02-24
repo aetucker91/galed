@@ -249,7 +249,7 @@ GitHub: `github.com/aetucker91/galed`
 ## What Claude Code Should Do First
 
 1. Read this file, CONTRIBUTING.md, and RFC.md in full
-2. Look at `schema/requirement.json` and `examples/REQ-001.gal`
+2. Look at `schema/requirement.json` and `.galed/requirements/REQ-001.gal`
 3. Look at `src/main.rs` — the CLI stub is already wired with all 6 subcommands
 4. **Implement `galed validate` first** — this is the foundation
    - Parse a `.gal` file or directory of `.gal` files
